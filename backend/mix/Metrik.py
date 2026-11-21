@@ -1,5 +1,6 @@
 import csv
 import math
+import sys
 from pathlib import Path
 
 # справочники
@@ -7,9 +8,12 @@ RESULT_ORIGIN = {"primary", "cited"}
 EXTRACTION_STATUS = {"extracted", "present_not_extractable", "absent"}
 DIRECTIONS = {"higher_is_better", "lower_is_better", "target"}
 
-# чтение файла
+# чтение файла (utf-8-sig защищает от ошибок Excel)
 def read_csv(path):
-    with open(path, encoding="utf-8", newline="") as f:
+    if not path.exists():
+        print(f"ОШИБКА: Файл {path.name} не найден в папке {path.parent}!")
+        sys.exit(1)
+    with open(path, encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
 def to_float(v):
@@ -151,7 +155,7 @@ def check_results(pub_dir):
     out = pub_dir / "issues.csv"
     fields = ["issue_id", "record_ids", "check_name", "description",
               "source_page", "source_fragment"]
-    with open(out, "w", encoding="utf-8", newline="") as f:
+    with open(out, "w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(issues)
@@ -160,9 +164,9 @@ def check_results(pub_dir):
 
 
 if __name__ == "__main__":
-    import sys
-    pub = sys.argv[1] if len(sys.argv) > 1 else "submission/D001"
+    # Теперь по умолчанию ищет папку tabl рядом со скриптом
+    pub = sys.argv[1] if len(sys.argv) > 1 else "tabl"
     issues = check_results(pub)
-    print(f"Публикация {pub}: замечаний — {len(issues)}")
+    print(f"Проверена папка '{pub}'. Найдено замечаний: {len(issues)}")
     for i in issues:
         print(f"  {i['issue_id']} [{i['check_name']}] {i['record_ids']}: {i['description']}")
