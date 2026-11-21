@@ -121,93 +121,29 @@
     </div>
 
     <script>
-        // 1. Функция загрузки данных с бэкенда
+        let allData = []; 
+
+        // 1. Загрузка существующих данных (при старте)
         async function loadData() {
             try {
                 const response = await fetch('/api/results');
-                const data = await response.json();
-                renderTable(data);
+                allData = await response.json();
+                renderTable(allData);
             } catch (error) {
                 console.error("Ошибка загрузки:", error);
+                // Если база пуста, просто показываем сообщение
                 document.getElementById('table-body').innerHTML = 
-                    `<tr><td colspan="6" class="text-center py-10 text-red-500">Ошибка подключения к серверу. Запущен ли Python?</td></tr>`;
+                    `<tr><td colspan="6" class="text-center py-10 text-gray-500">База пуста. Загрузите PDF для начала.</td></tr>`;
             }
         }
 
         // 2. Отрисовка таблицы
         function renderTable(data) {
             const tbody = document.getElementById('table-body');
-            tbody.innerHTML = ''; // Очищаем "Загрузку..."
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">В results.csv нет данных</td></tr>`;
-                return;
-            }
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 cursor-pointer transition-colors";
-                
-                // Определяем статус (ошибка или ок)
-                const statusIcon = row.has_issue 
-                    ? '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>' 
-                    : '<i class="fa-solid fa-circle-check text-green-500"></i>';
-
-                // Подготовка текста ошибки
-                const errTitle = row.issue_details.check_name || "";
-                const errDesc = row.issue_details.description || "";
-                
-                // Формируем строку
-                tr.innerHTML = `
-                    <td class="px-4 py-3">${statusIcon}</td>
-                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${row.publication_id || ''}</span></td>
-                    <td class="px-4 py-3 font-medium text-gray-800">${row.metric_name || ''}</td>
-                    <td class="px-4 py-3 text-gray-500">${row.raw_value || row.metric_value || ''}</td>
-                    <td class="px-4 py-3 font-medium">${row.metric_value || ''}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${row.source_page || '?'}</td>
-                `;
-
-                // Обработчик клика по строке
-                tr.onclick = () => showDetails(row, errTitle, errDesc);
-                
-                tbody.appendChild(tr);
-            });
-        }
-
-        // 3. Обработка клика (вывод в правую панель)
-        function showDetails(row, title, desc) {
-            document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
-            
-            const warningBox = document.getElementById('warning-box');
-            if (row.has_issue) {
-                document.getElementById('issue-title').innerText = `[${title}]`;
-                document.getElementById('issue-desc').innerText = desc;
-                warningBox.classList.remove('hidden');
-            } else {
-                warningBox.classList.add('hidden');
-            }
-        }
-        let allData = []; // Глобальная переменная для хранения всех данных
-
-        async function loadData() {
-            try {
-                const response = await fetch('/api/results');
-                allData = await response.json(); // Сохраняем данные в переменную
-                renderTable(allData);
-            } catch (error) {
-                console.error("Ошибка загрузки:", error);
-                document.getElementById('table-body').innerHTML = 
-                    `<tr><td colspan="6" class="text-center py-10 text-red-500">Ошибка подключения к серверу. Запущен ли Python?</td></tr>`;
-            }
-        }
-
-        // Отрисовка
-        function renderTable(data) {
-            const tbody = document.getElementById('table-body');
             tbody.innerHTML = ''; 
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Ничего не найдено</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Нет данных</td></tr>`;
                 return;
             }
 
@@ -219,50 +155,105 @@
                     ? '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>' 
                     : '<i class="fa-solid fa-circle-check text-green-500"></i>';
 
-                const errTitle = row.issue_details.check_name || "";
-                const errDesc = row.issue_details.description || "";
-                
+                // Безопасное извлечение вложенных полей (на случай если их нет)
+                const prov = row.provenance || {};
+                const status = row.status || {};
+
                 tr.innerHTML = `
                     <td class="px-4 py-3">${statusIcon}</td>
-                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${row.publication_id || ''}</span></td>
+                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${prov.publication_id || ''}</span></td>
                     <td class="px-4 py-3 font-medium text-gray-800">${row.metric_name || ''}</td>
-                    <td class="px-4 py-3 text-gray-500">${row.raw_value || row.metric_value || ''}</td>
+                    <td class="px-4 py-3 text-gray-500">${status.raw_value || row.metric_value || ''}</td>
                     <td class="px-4 py-3 font-medium">${row.metric_value || ''}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${row.source_page || '?'}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${prov.source_page || '?'}</td>
                 `;
 
-                tr.onclick = () => showDetails(row, errTitle, errDesc);
+                tr.onclick = () => showDetails(row);
                 tbody.appendChild(tr);
             });
         }
 
-        // Показ деталей
-        function showDetails(row, title, desc) {
-        document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
-        const warningBox = document.getElementById('warning-box');
-        if (row.has_issue) {
-            document.getElementById('issue-title').innerText = `[${title}]`;
-            document.getElementById('issue-desc').innerText = desc;
-            warningBox.classList.remove('hidden');
-        } else {
-            warningBox.classList.add('hidden');
+        // 3. Показ деталей
+        function showDetails(row) {
+            document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
+            // Логика для правой панели
         }
-    }
 
+        // 4. Поиск
         document.getElementById('search-input').addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        
-        // Фильтруем данные: ищем совпадения по ID, публикации или названию метрики
-        const filteredData = allData.filter(row => {
-            const rid = (row.result_id || '').toLowerCase();
-            const pub = (row.publication_id || '').toLowerCase();
-            const metric = (row.metric_name || '').toLowerCase();
-            
-            return rid.includes(query) || pub.includes(query) || metric.includes(query);
+            const query = e.target.value.toLowerCase();
+            const filteredData = allData.filter(row => {
+                return (row.result_id || '').toLowerCase().includes(query) || 
+                       (row.metric_name || '').toLowerCase().includes(query);
+            });
+            renderTable(filteredData);
         });
+
+        // 5. ОБРАБОТКА КНОПКИ "ЗАГРУЗИТЬ PDF"
+        const uploadBtn = document.querySelector('header button');
         
-        renderTable(filteredData); // Перерисовываем таблицу (фильтр)
-    });
+        // Создаем скрытый input для выбора файла
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'application/pdf';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        // Клик по кнопке вызывает окно выбора файла
+        uploadBtn.onclick = () => fileInput.click();
+
+        // Когда файл выбран:
+        // Когда файл выбран:
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Меняем кнопку, чтобы показать загрузку
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Анализ...';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // Отправляем на наш Python-сервер
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || `Ошибка сервера (${response.status})`);
+                }
+
+                const result = await response.json();
+                
+                // Полностью заменяем старые данные (заглушку) новыми
+                if (result.data && result.data.metric_results) {
+                    allData = result.data.metric_results;
+                    sessionStorage.setItem('uploaded_metrics', JSON.stringify(allData));
+                    renderTable(allData);
+                    alert(`Успешно извлечено ${allData.length} записей!`);
+                } else {
+                    allData = [];
+                    sessionStorage.removeItem('uploaded_metrics');
+                    renderTable(allData);
+                    alert("Не удалось найти показатели в этом PDF.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Ошибка при обработке файла: " + error.message);
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                uploadBtn.innerHTML = originalText;
+                uploadBtn.disabled = false;
+                fileInput.value = ''; // Очищаем инпут
+            }
+        };
+
         // Запуск при загрузке страницы
         window.onload = loadData;
     </script>

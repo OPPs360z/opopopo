@@ -1,2 +1,8 @@
 fastapi
-unicorn
+uvicorn
+python-multipart
+pypdf>=6,<8
+PyMuPDF>=1.24
+openai
+pydantic
+tenacity
