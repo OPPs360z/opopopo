@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anchor - Извлечение показателей RAG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-10 shrink-0">
+        <div class="flex items-center gap-6">
+            <h1 class="text-2xl font-bold tracking-tight">anchor.</h1>
+            <div class="relative w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                <input type="text" placeholder="Поиск по DOI, названию или автору..." class="w-full bg-gray-100 text-sm rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        </div>
+        <button class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Загрузить PDF
+        </button>
+    </header>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- ЛЕВАЯ ПАНЕЛЬ (ФИЛЬТРЫ) -->
+        <aside class="w-64 bg-white border-r border-gray-200 p-5 flex flex-col overflow-y-auto custom-scrollbar shrink-0">
+            <h2 class="font-semibold text-gray-800 mb-4">Фильтры</h2>
+            
+            <div class="mb-6">
+                <label class="block text-xs font-medium text-gray-500 mb-2">Метрики</label>
+                <input type="text" placeholder="Найти метрику..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 mb-3 focus:outline-none">
+                <div class="space-y-2 text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="rounded text-blue-600"> <span class="font-medium text-blue-800">Все метрики</span></label>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-xs font-medium text-gray-500 mb-2">Направление улучшения</label>
+                <div class="space-y-2 text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer bg-gray-100 p-2 rounded-lg"><input type="radio" name="dir" checked> Любое</label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 text-gray-600"><input type="radio" name="dir"> Больше - лучше</label>
+                    <label class="flex items-center gap-2 cursor-pointer p-2 text-gray-600"><input type="radio" name="dir"> Меньше - лучше</label>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-2">
+                <button class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg text-sm font-medium">Применить</button>
+                <button class="w-full text-gray-500 hover:text-gray-800 py-2 text-sm font-medium">Сбросить</button>
+            </div>
+        </aside>
+
+        <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ (ТАБЛИЦА) -->
+        <main class="flex-1 flex flex-col min-w-0 bg-[#f8fafc]">
+            <div class="p-6 pb-2 shrink-0">
+                <h2 class="text-2xl font-semibold mb-1">Извлечённые показатели</h2>
+                <p class="text-sm text-gray-500">Публикации, метрики и исходные значения</p>
+            </div>
+
+            <div class="flex-1 overflow-auto px-6 custom-scrollbar relative">
+                <table class="w-full text-left border-collapse bg-white rounded-lg shadow-sm overflow-hidden">
+                    <thead class="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
+                        <tr>
+                            <th class="px-4 py-3 font-medium">Статус</th>
+                            <th class="px-4 py-3 font-medium">ID / Связи</th>
+                            <th class="px-4 py-3 font-medium">Показатель</th>
+                            <th class="px-4 py-3 font-medium">Исходное значение</th>
+                            <th class="px-4 py-3 font-medium">Нормализованное</th>
+                            <th class="px-4 py-3 font-medium">Место в PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="text-sm divide-y divide-gray-100">
+                        <!-- Сюда JS будет вставлять строки -->
+                        <tr><td colspan="6" class="text-center py-10 text-gray-500">Загрузка данных из CSV...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- НИЖНЯЯ ПАНЕЛЬ -->
+            <div class="p-4 bg-white border-t border-gray-200 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Проверено</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Требует проверки</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- ПРАВАЯ ПАНЕЛЬ (ПРОВЕРКА ИСТОЧНИКА) -->
+        <aside class="w-[400px] bg-white border-l border-gray-200 flex flex-col shrink-0">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="font-semibold text-gray-800">Проверка источника</h3>
+                <p class="text-xs text-gray-500 mt-1" id="current-id">Выберите строку</p>
+            </div>
+            
+            <div class="p-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+                <!-- Блок предупреждения -->
+                <div id="warning-box" class="hidden bg-[#fefce8] border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-800 leading-relaxed">
+                        <strong id="issue-title">Предупреждение:</strong> 
+                        <span id="issue-desc"></span>
+                    </p>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 bg-gray-50 relative min-h-[300px]">
+                    <div class="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                        <i class="fa-regular fa-file-pdf text-5xl text-gray-300 mb-4"></i>
+                        <p class="text-sm text-gray-500">Место для рендера PDF</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        // 1. Функция загрузки данных с бэкенда
+        async function loadData() {
+            try {
+                const response = await fetch('/api/results');
+                const data = await response.json();
+                renderTable(data);
+            } catch (error) {
+                console.error("Ошибка загрузки:", error);
+                document.getElementById('table-body').innerHTML = 
+                    `<tr><td colspan="6" class="text-center py-10 text-red-500">Ошибка подключения к серверу. Запущен ли Python?</td></tr>`;
+            }
+        }
+
+        // 2. Отрисовка таблицы
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = ''; // Очищаем "Загрузку..."
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">В results.csv нет данных</td></tr>`;
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 cursor-pointer transition-colors";
+                
+                // Определяем статус (ошибка или ок)
+                const statusIcon = row.has_issue 
+                    ? '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>' 
+                    : '<i class="fa-solid fa-circle-check text-green-500"></i>';
+
+                // Подготовка текста ошибки
+                const errTitle = row.issue_details.check_name || "";
+                const errDesc = row.issue_details.description || "";
+                
+                // Формируем строку
+                tr.innerHTML = `
+                    <td class="px-4 py-3">${statusIcon}</td>
+                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${row.publication_id || ''}</span></td>
+                    <td class="px-4 py-3 font-medium text-gray-800">${row.metric_name || ''}</td>
+                    <td class="px-4 py-3 text-gray-500">${row.raw_value || row.metric_value || ''}</td>
+                    <td class="px-4 py-3 font-medium">${row.metric_value || ''}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${row.source_page || '?'}</td>
+                `;
+
+                // Обработчик клика по строке
+                tr.onclick = () => showDetails(row, errTitle, errDesc);
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 3. Обработка клика (вывод в правую панель)
+        function showDetails(row, title, desc) {
+            document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
+            
+            const warningBox = document.getElementById('warning-box');
+            if (row.has_issue) {
+                document.getElementById('issue-title').innerText = `[${title}]`;
+                document.getElementById('issue-desc').innerText = desc;
+                warningBox.classList.remove('hidden');
+            } else {
+                warningBox.classList.add('hidden');
+            }
+        }
+
+        // Запуск при загрузке страницы
+        window.onload = loadData;
+    </script>
+</body>
+</html>
