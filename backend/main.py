@@ -1,12 +1,16 @@
+# backend/main.py
 import csv
-import json
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+# Импортируем логику парсинга из pars.py
+from pars import extract_text_from_pdf_bytes, extract_data_with_llm
+
 app = FastAPI()
 
+# Разрешаем CORS (чтобы фронтенд мог обращаться к бэкенду)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,29 +18,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Настройка путей через pathlib
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "mix" / "tabl"
 FRONTEND_FILE = BASE_DIR.parent / "frontend" / "index.html"
 
-def read_csv(filename):
+
+def read_csv(filename: str):
     path = DATA_DIR / filename
     if not path.exists():
         return []
     with open(path, encoding="utf-8-sig", newline="") as f:
         return list(csv.DictReader(f))
 
+
+# 1. Отдаем index.html при заходе на корень сайта
 @app.get("/")
 def serve_frontend():
     if not FRONTEND_FILE.exists():
         return {"error": f"Файл index.html не найден по пути {FRONTEND_FILE}"}
     return FileResponse(FRONTEND_FILE)
 
+
+# 2. Эндпоинт для загрузки PDF и извлечения данных
+@app.post("/api/upload")
+async def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Разрешены только PDF файлы")
+
+    try:
+        # Читаем файл
+        pdf_bytes = await file.read()
+
+        # 1. Парсим текст
+        text = extract_text_from_pdf_bytes(pdf_bytes)
+
+        # 2. Отправляем в LLM
+        result = extract_data_with_llm(text, file.filename)
+
+        # 3. Возвращаем результат на фронтенд в виде JSON
+        return JSONResponse(content={
+            "status": "success",
+            "data": result.model_dump()
+        })
+
+    except Exception as e:
+        print(f"Ошибка при обработке PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# 3. Основной API для таблицы на сайте
 @app.get("/api/results")
 def get_results():
-    """Основной API для таблицы на сайте"""
     results = read_csv("results.csv")
     issues = read_csv("issues.csv")
-    
+
     issues_dict = {}
     for iss in issues:
         r_ids = iss.get("record_ids", "").split(";")
@@ -56,8 +92,8 @@ def get_results():
 
     return merged_data
 
-# --- НОВОЕ: Эндпоинты для JSON ---
 
+# 4. Эндпоинты для JSON и схемы
 @app.get("/api/export/json")
 def export_full_json():
     """Возвращает ПОЛНЫЙ датасет (все 7 таблиц) в виде одного JSON-файла"""
@@ -72,11 +108,10 @@ def export_full_json():
     }
     return JSONResponse(content=all_data)
 
+
 @app.get("/api/schema")
 def get_schema():
     """Возвращает паспорт поля (schema.json), требуемый в README"""
-    # В реальном проекте вы можете сгенерировать это автоматически, 
-    # но пока пропишем базовую структуру из README.
     schema = {
         "results.csv": {
             "result_id": {"type": "string", "description": "Уникальный идентификатор результата"},
@@ -93,6 +128,7 @@ def get_schema():
         }
     }
     return JSONResponse(content=schema)
+
 
 if __name__ == "__main__":
     import uvicorn
