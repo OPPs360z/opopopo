@@ -20,7 +20,7 @@
             <h1 class="text-2xl font-bold tracking-tight">anchor.</h1>
             <div class="relative w-96">
                 <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
-                <input type="text" placeholder="Поиск по DOI, названию или автору..." class="w-full bg-gray-100 text-sm rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="search-input" type="text" placeholder="Поиск по DOI, названию или автору..." class="w-full bg-gray-100 text-sm rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" >
             </div>
         </div>
         <button class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
@@ -187,7 +187,82 @@
                 warningBox.classList.add('hidden');
             }
         }
+        let allData = []; // Глобальная переменная для хранения всех данных
 
+        async function loadData() {
+            try {
+                const response = await fetch('/api/results');
+                allData = await response.json(); // Сохраняем данные в переменную
+                renderTable(allData);
+            } catch (error) {
+                console.error("Ошибка загрузки:", error);
+                document.getElementById('table-body').innerHTML = 
+                    `<tr><td colspan="6" class="text-center py-10 text-red-500">Ошибка подключения к серверу. Запущен ли Python?</td></tr>`;
+            }
+        }
+
+        // Отрисовка
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = ''; 
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Ничего не найдено</td></tr>`;
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 cursor-pointer transition-colors";
+                
+                const statusIcon = row.has_issue 
+                    ? '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>' 
+                    : '<i class="fa-solid fa-circle-check text-green-500"></i>';
+
+                const errTitle = row.issue_details.check_name || "";
+                const errDesc = row.issue_details.description || "";
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-3">${statusIcon}</td>
+                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${row.publication_id || ''}</span></td>
+                    <td class="px-4 py-3 font-medium text-gray-800">${row.metric_name || ''}</td>
+                    <td class="px-4 py-3 text-gray-500">${row.raw_value || row.metric_value || ''}</td>
+                    <td class="px-4 py-3 font-medium">${row.metric_value || ''}</td>
+                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${row.source_page || '?'}</td>
+                `;
+
+                tr.onclick = () => showDetails(row, errTitle, errDesc);
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Показ деталей
+        function showDetails(row, title, desc) {
+        document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
+        const warningBox = document.getElementById('warning-box');
+        if (row.has_issue) {
+            document.getElementById('issue-title').innerText = `[${title}]`;
+            document.getElementById('issue-desc').innerText = desc;
+            warningBox.classList.remove('hidden');
+        } else {
+            warningBox.classList.add('hidden');
+        }
+    }
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        
+        // Фильтруем данные: ищем совпадения по ID, публикации или названию метрики
+        const filteredData = allData.filter(row => {
+            const rid = (row.result_id || '').toLowerCase();
+            const pub = (row.publication_id || '').toLowerCase();
+            const metric = (row.metric_name || '').toLowerCase();
+            
+            return rid.includes(query) || pub.includes(query) || metric.includes(query);
+        });
+        
+        renderTable(filteredData); // Перерисовываем таблицу (фильтр)
+    });
         // Запуск при загрузке страницы
         window.onload = loadData;
     </script>
