@@ -100,20 +100,28 @@
                 <p class="text-xs text-gray-500 mt-1" id="current-id">Выберите строку</p>
             </div>
             
-            <div class="p-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+            <div class="p-4 flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                 <!-- Блок предупреждения -->
-                <div id="warning-box" class="hidden bg-[#fefce8] border border-yellow-200 rounded-lg p-4">
-                    <p class="text-sm text-yellow-800 leading-relaxed">
+                <div id="warning-box" class="hidden bg-[#fefce8] border border-yellow-200 rounded-lg p-3">
+                    <p class="text-xs text-yellow-800 leading-relaxed">
                         <strong id="issue-title">Предупреждение:</strong> 
                         <span id="issue-desc"></span>
                     </p>
                 </div>
 
-                <div class="border border-gray-200 rounded-lg overflow-hidden flex-1 bg-gray-50 relative min-h-[300px]">
-                    <div class="w-full h-full flex flex-col items-center justify-center p-4 text-center">
+                <!-- Блок дословной цитаты (фрагмента) -->
+                <div id="fragment-box" class="hidden bg-blue-50/70 border border-blue-100 rounded-lg p-3">
+                    <div class="text-[11px] font-semibold text-blue-800 uppercase mb-1">Фрагмент из текста:</div>
+                    <p id="source-fragment" class="text-xs text-gray-700 italic leading-relaxed"></p>
+                </div>
+
+                <!-- Контейнер для PDF -->
+                <div id="pdf-container" class="border border-gray-200 rounded-lg overflow-hidden flex-1 bg-gray-50 relative min-h-[350px] flex flex-col">
+                    <div id="pdf-placeholder" class="w-full h-full flex-1 flex flex-col items-center justify-center p-4 text-center">
                         <i class="fa-regular fa-file-pdf text-5xl text-gray-300 mb-4"></i>
-                        <p class="text-sm text-gray-500">Место для рендера PDF</p>
+                        <p class="text-sm text-gray-500">Загрузите PDF, чтобы открыть предпросмотр</p>
                     </div>
+                    <iframe id="pdf-viewer" class="hidden w-full h-full flex-1 border-0"></iframe>
                 </div>
             </div>
         </aside>
@@ -122,6 +130,20 @@
 
     <script>
         let allData = []; 
+        let currentPdfUrl = null; // Ссылка на загруженный в браузере PDF
+
+        // Вспомогательная функция для отображения PDF на нужной странице
+        function renderPdfPage(page = 1) {
+            if (!currentPdfUrl) return;
+            const viewer = document.getElementById('pdf-viewer');
+            const placeholder = document.getElementById('pdf-placeholder');
+            
+            placeholder.classList.add('hidden');
+            viewer.classList.remove('hidden');
+            
+            // Параметр #page= заставляет встроенный просмотрщик браузера открыть нужную страницу
+            viewer.src = `${currentPdfUrl}#page=${page}&view=FitH`;
+        }
 
         // 1. Загрузка существующих данных (при старте)
         async function loadData() {
@@ -173,10 +195,34 @@
             });
         }
 
-        // 3. Показ деталей
+        // 3. Показ деталей при клике на строку таблицы
         function showDetails(row) {
             document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
-            // Логика для правой панели
+
+            // Показываем предупреждение, если есть
+            const warningBox = document.getElementById('warning-box');
+            if (row.has_issue && row.issue_details) {
+                warningBox.classList.remove('hidden');
+                document.getElementById('issue-title').innerText = (row.issue_details.check_name || 'Предупреждение') + ': ';
+                document.getElementById('issue-desc').innerText = row.issue_details.description || '';
+            } else {
+                warningBox.classList.add('hidden');
+            }
+
+            // Показываем исходный текстовый фрагмент, если он пришел от LLM или из CSV
+            const prov = row.provenance || {};
+            const fragment = prov.source_fragment || row.source_fragment;
+            const fragmentBox = document.getElementById('fragment-box');
+            if (fragment) {
+                fragmentBox.classList.remove('hidden');
+                document.getElementById('source-fragment').innerText = `«${fragment}»`;
+            } else {
+                fragmentBox.classList.add('hidden');
+            }
+
+            // Перелистываем PDF на страницу, где найдена метрика
+            const page = prov.source_page || row.source_page || 1;
+            renderPdfPage(page);
         }
 
         // 4. Поиск
@@ -207,6 +253,11 @@
         fileInput.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+
+            // Освобождаем память от предыдущего PDF и создаем ссылку на новый
+            if (currentPdfUrl) URL.revokeObjectURL(currentPdfUrl);
+            currentPdfUrl = URL.createObjectURL(file);
+            renderPdfPage(1); // Сразу показываем 1-ю страницу во время анализа
 
             // Меняем кнопку, чтобы показать загрузку
             const originalText = uploadBtn.innerHTML;
