@@ -1,312 +1,994 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anchor - Извлечение показателей RAG</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #5a96d2; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d57d39; border-radius: 4px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>anchor. — Анализ научных исследований</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+  --ink:#29435b; --muted:#71869a; --line:#dce5eb; --pale:#f4f7f9;
+  --blue:#315f7b; --blue-hover:#274e67; --white:#fff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Inter,Arial,sans-serif;color:var(--ink);background:#f4f6f7;font-size:12px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{height:100vh;min-height:560px;width:100%;max-width:none;margin:0;padding:0;display:flex;flex-direction:column}
+.topbar{height:49px;flex:none;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 15px;gap:28px}
+.brand{font-size:22px;font-weight:400;letter-spacing:-.55px;min-width:112px;color:#263d52;line-height:1}
+.search-wrap{position:relative;flex:1;max-width:620px}
+.search-wrap i{position:absolute;left:12px;top:11px;color:#8295a5;font-size:12px}
+.search-wrap input{width:100%;height:28px;border:0;border-radius:5px;background:#eef2f4;padding:0 12px 0 32px;color:#334e64;outline:none;font-size:10px}
+.primary{background:var(--blue);color:#fff;border:0;border-radius:5px;font-size:10px;font-weight:400;height:32px;padding:0 25px}
+.primary:hover{background:var(--blue-hover)}
+.upload{margin-left:auto;min-width:130px}
+.workspace{display:flex;flex:1;min-height:0;background:#fff}
+.sidebar{width:132px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}
+.sidebar-scroll{overflow-y:auto;min-height:0;flex:1;padding:20px 10px 10px;scrollbar-width:thin;scrollbar-color:#9aafbd transparent}
+.sidebar h2{font-size:11px;font-weight:400;margin:0 0 14px 0;color:#2d455a}
+.filter-group{margin-bottom:12px}
+.filter-label{display:block;font-size:9px;font-weight:400;color:#455e73;margin-bottom:6px}
+.field{width:100%;height:23px;border:1px solid #d9e3e9;border-radius:3px;background:#fff;padding:0 7px;color:#5c7285;font-size:9px;outline:none}
+.field::placeholder{color:#8295a5}
+.field:focus{border-color:#7da1b8;box-shadow:0 0 0 2px #e8f0f4}
+.field-select{appearance:none;padding-right:20px}
+.select-wrap{position:relative}
+.select-wrap:after{content:"⌄";position:absolute;right:8px;top:3px;color:#6c8294;pointer-events:none;font-size:12px}
+.date-wrap{position:relative}
+.date-wrap i{position:absolute;right:7px;top:7px;color:#8295a5;font-size:9px;pointer-events:none}
+.date-wrap input{padding-right:23px}
+.unit-options{display:flex;gap:4px;align-items:center}
+.unit-options button{height:22px;border:1px solid transparent;border-radius:3px;background:transparent;color:#637b8d;font-size:9px;padding:0 7px}
+.unit-options button.active{background:#f0f4f6;border-color:#e0e8ed;color:#315c78}
+.metric-trigger{display:flex;align-items:center;justify-content:space-between;text-align:left}
+.sidebar-actions{flex:none;background:#fff;border-top:1px solid #edf1f3;padding:8px 10px 9px;display:flex;flex-direction:column;gap:5px}
+.sidebar-actions .primary{width:100%;height:27px;padding:0;font-size:9px}
+.reset{border:0;background:none;color:#315f7b;font-size:9px;height:18px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;background:#fff}
+.main-head{padding:18px 15px 8px;flex:none}
+.main-head-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.main-title{font:18px/1.18 Georgia,'Times New Roman',serif;color:#2d455c;margin:0;max-width:390px}
+.export{height:24px;border:1px solid #d5e0e7;border-radius:4px;background:#f5f8fa;color:#315d79;padding:0 9px;font-size:9px;white-space:nowrap}
+.main-subtitle{font-size:9px;color:#8295a5;margin:13px 0 0}
+.table-area{flex:1;min-height:0;overflow:auto;padding:0 15px 14px;scrollbar-width:thin;scrollbar-color:#9aafbd #edf1f3}
+.data-table{border-collapse:collapse;width:100%;min-width:650px;background:#fff;font-size:9px;table-layout:auto}
+.data-table th{position:sticky;top:0;z-index:2;background:#f0f4f6;color:#6a8193;font-weight:400;text-align:left;white-space:nowrap;padding:9px 8px;border-bottom:1px solid #dce5eb}
+.data-table th span{float:right;color:#94a6b3;margin-left:9px}
+.data-table td{padding:8px;border-bottom:1px solid #e3e9ed;color:#34536d;white-space:nowrap;height:29px}
+.data-table tbody tr:nth-child(odd){background:#fafcfd}
+.data-table tbody tr:hover{background:#edf4f7;cursor:pointer}
+.right-panel{width:220px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:#fff}
+.right-head{padding:20px 12px 10px;border-bottom:1px solid #edf1f3;flex:none}
+.right-head h3{font-size:11px;font-weight:400;margin:0 0 5px}
+.right-head p{font-size:8px;color:#8295a5;margin:0}
+.pdf-controls{display:flex;align-items:center;gap:7px;margin-top:10px}
+.pdf-controls button{width:22px;height:22px;border:1px solid #dce5eb;border-radius:4px;background:#fff;color:#47657d}
+.pdf-controls button.is-active{border-color:#8eacbf;background:#eef4f7;color:#315f7b}
+.pdf-controls span{font-size:8px;color:#516b80;flex:1;text-align:center;white-space:nowrap}
+.pdf-content{padding:10px;overflow:auto;flex:1;min-height:0}
+#pdf-container{height:100%;min-height:280px;border:1px solid #e1e8ed;background:#f7f9fa;display:flex;flex-direction:column;overflow:auto;align-items:stretch;justify-content:flex-start}
+#pdf-placeholder{flex:1;min-height:260px;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;color:#8da0ae;padding:15px;font-size:10px}
+#pdf-viewer{display:block;flex:none;max-width:none;background:#fff;box-shadow:0 1px 5px rgba(35,55,70,.16);margin:10px auto}
+#pdf-viewer.hidden{display:none!important}
+.pdf-controls button:disabled{opacity:.35;cursor:default}
+.info-box{padding:9px;margin-bottom:8px;border-radius:4px;font-size:9px}
+.filter-section-title{font-size:12px;font-weight:400;color:#2d455a;margin:18px 0 10px}
+.data-table{width:max-content;min-width:100%;table-layout:auto}
+.data-table th{min-width:112px;cursor:pointer}
+.data-table td{min-width:112px;max-width:360px}
+.data-table th[data-key="source_fragment"],.data-table td[data-key="source_fragment"]{min-width:300px;max-width:420px;white-space:normal;overflow-wrap:anywhere}
+ .data-table th[data-key="note"],.data-table td[data-key="note"]{min-width:220px;max-width:320px;white-space:normal}
+
+/* Horizontal table navigation by holding the left mouse button and dragging. */
+.table-area{cursor:grab;user-select:none;-webkit-user-select:none}
+.table-area.is-dragging{cursor:grabbing}
+.table-area.is-dragging *{user-select:none;-webkit-user-select:none}
+.table-area.is-dragging .data-table tbody tr{pointer-events:none}
+.table-pagination{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 15px 10px;border-top:1px solid #e7edf1;background:#fff;color:#71869a;font-size:9px}
+.table-pagination .page-info{white-space:nowrap}
+.table-pagination .page-actions{display:flex;align-items:center;gap:6px}
+.table-pagination button{height:24px;min-width:27px;padding:0 8px;border:1px solid #dce5eb;border-radius:4px;background:#fff;color:#315f7b;font-size:9px}
+.table-pagination button:disabled{opacity:.4;cursor:default}
+.table-pagination .page-number{min-width:72px;text-align:center}
+.hidden{display:none!important}
+/* modal overlays */
+.modal-backdrop{position:fixed;inset:0;background:rgba(31,48,61,.38);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-backdrop.open{display:flex}
+.modal{width:min(472px,calc(100vw - 32px));max-height:min(82vh,620px);background:#fff;border-radius:9px;box-shadow:0 18px 55px rgba(25,43,56,.2);display:flex;flex-direction:column;overflow:hidden}
+.modal-head{padding:18px 21px 12px;position:relative;flex:none}
+.modal-title{font-size:16px;font-weight:400;color:#2d455b;margin:0 0 7px}
+.modal-desc{font-size:10px;color:#71869a;margin:0}
+.modal-close{position:absolute;right:17px;top:17px;border:0;background:transparent;color:#647c8e;font-size:16px;padding:0 3px}
+.modal-body{padding:8px 21px 16px;overflow:auto;min-height:0}
+.modal-label{display:block;font-size:9px;font-weight:400;color:#536c80;margin:5px 0 10px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 3px 10px}
+.tabs button{height:30px;border:0;border-radius:4px;background:#f4f6f7;color:#71869a;font-size:9px}
+.tabs button.active{background:#eaf0f4;color:#315f7b}
+.modal-tools{display:flex;justify-content:space-between;margin:0 0 10px;font-size:9px}
+.modal-tools button{border:0;background:none;color:#315f7b;padding:2px 0}
+.metric-list{display:flex;flex-direction:column;gap:6px}
+.metric-option{border:1px solid #cbdbe5;background:#f6f9fa;border-radius:5px;padding:9px 10px;display:flex;align-items:center;gap:10px;min-height:49px;cursor:pointer}
+.metric-option input{accent-color:#315f7b;width:15px;height:15px;flex:none}
+.metric-option strong{display:block;font-size:10px;font-weight:400;color:#2f485e;margin-bottom:3px}
+.metric-option small{display:block;font-size:9px;color:#788d9e}
+.selection-count{font-size:9px;color:#314d64;font-weight:400;margin:17px 0 7px}
+.modal-note{font-size:9px;color:#8194a3;margin:0}
+.modal-foot{border-top:1px solid #e8edf0;padding:9px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex:none}
+.modal-foot .primary{min-width:110px}
+.modal-foot span{font-size:9px;color:#8194a3}
+.unit-modal{width:min(368px,calc(100vw - 32px))}
+.unit-modal .modal-head{padding-bottom:16px}
+.unit-modal .modal-body{padding-top:8px;padding-bottom:28px}
+.unit-modal .field{height:32px;font-size:10px;padding:0 9px}
+.unit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}
+.unit-grid label{font-size:9px;color:#536c80;display:block;margin-bottom:7px}
+.unit-help{font-size:9px;color:#8194a3;margin-top:12px}
+.unit-modal .modal-foot{justify-content:flex-end;padding:10px 18px}
+@media(max-width:850px){.app{padding:0}.topbar{padding:0 12px}.sidebar{width:125px}.right-panel{width:190px}.main-title{font-size:16px}}
+@media(max-width:650px){.right-panel{display:none}.sidebar{width:145px}.brand{min-width:auto}.topbar{gap:12px}.upload{min-width:95px;padding:0 10px}.main-head{padding:14px 10px}.table-area{padding:0 10px 10px}}
+
+/* Full-window layout based on the original index(3) module placement.
+   The center column flexes; the two side modules retain their own widths. */
+.app{
+  width:100%;
+  max-width:none;
+  height:100vh;
+  min-height:560px;
+  margin:0;
+  padding:0;
+}
+.topbar{height:50px;gap:26px;padding:0 24px}
+.brand{font-size:19px;font-weight:400;letter-spacing:-.45px;min-width:112px}
+.search-wrap{max-width:620px}
+.search-wrap input{height:30px;font-size:11px}
+.primary{font-size:11px}
+.upload{min-width:132px;flex:none;white-space:nowrap;transition:background .15s,box-shadow .15s}
+.upload:hover{background:#274e67;box-shadow:0 0 0 3px rgba(49,95,123,.14)}
+.upload:focus-visible{outline:2px solid #7da1b8;outline-offset:2px}
+.upload:active{background:#203f55;box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
+.sidebar{width:256px;flex:0 0 256px}
+.sidebar-scroll{padding:20px 18px 12px}
+.sidebar h2{font-size:13px}
+.filter-label{font-size:11px}
+.field{height:32px;font-size:11px;padding:0 9px}
+.select-wrap:after{top:7px}
+.date-wrap i{top:11px}
+.filter-group{margin-bottom:15px}
+.unit-options button{height:27px;font-size:11px}
+.sidebar-actions{padding:10px 16px}
+.sidebar-actions .primary{height:34px;font-size:11px}
+.reset{font-size:11px;height:22px}
+.main-head{padding:20px 20px 10px}
+.main-title{font-size:22px;line-height:1.2;max-width:480px}
+.export{height:30px;font-size:10px;padding:0 12px}
+.main-subtitle{font-size:11px;margin-top:12px}
+.table-area{padding:0 20px 16px}
+.data-table{font-size:11px;min-width:650px}
+.data-table th{font-size:10px;padding:11px 10px}
+.data-table td{font-size:11px;padding:10px;height:36px}
+.right-panel{width:400px;flex:0 0 400px}
+.right-head{padding:18px 16px 12px}
+.right-head h3{font-size:13px}
+.right-head p{font-size:10px}
+.pdf-controls{gap:8px}
+.pdf-controls button{width:28px;height:28px}
+.pdf-controls span{font-size:10px}
+.pdf-content{padding:14px}
+#pdf-placeholder{font-size:12px}
+.info-box{font-size:11px}
+@media(max-width:1100px){
+  .sidebar{width:220px;flex-basis:220px}
+  .right-panel{width:300px;flex-basis:300px}
+  .topbar{padding:0 16px}
+}
+@media(max-width:760px){
+  .sidebar{width:190px;flex-basis:190px}
+  .right-panel{display:none}
+  .topbar{gap:12px;padding:0 12px}
+  .brand{min-width:auto}
+  .search-wrap{max-width:none}
+  .upload{min-width:110px;padding:0 12px}
+  .main-head{padding:16px 12px 8px}
+  .table-area{padding:0 12px 12px}
+}
+
+
+/* Search aligned above the central workspace; all other layout elements remain unchanged. */
+:root{--sidebar-width:256px}
+.topbar{position:relative}
+.topbar .search-wrap{
+  position:absolute;
+  left:calc(var(--sidebar-width) + 20px);
+  top:50%;
+  transform:translateY(-50%);
+  flex:none;
+  width:min(502px, calc(100% - var(--sidebar-width) - 180px));
+  max-width:502px;
+}
+.topbar .search-wrap input{height:30px;font-size:11px}
+@media(max-width:1100px){:root{--sidebar-width:220px}}
+@media(max-width:760px){
+  :root{--sidebar-width:190px}
+  .topbar .search-wrap{width:min(502px, calc(100% - var(--sidebar-width) - 135px))}
+}
+
+
+/* Column help tooltips styled to match the supplied Figma reference. */
+.data-table th{position:sticky;top:0;z-index:2}
+.data-table th .th-content{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.data-table th .th-label{display:inline-block;color:#536d82;border-bottom:1px dotted #7f94a5;line-height:1.45;white-space:nowrap}
+.data-table th .sort-indicator{float:none;flex:none;margin:0;color:#8298a8;font-size:14px;line-height:1}
+.column-tooltip{position:fixed;z-index:1000;width:min(300px,calc(100vw - 24px));padding:12px 13px 13px;border-radius:6px;background:#243b4e;color:#fff;box-shadow:0 4px 12px rgba(23,43,58,.16);pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s ease}
+.column-tooltip.is-visible{opacity:1;visibility:visible}
+.column-tooltip-title{font-size:13px;font-weight:400;line-height:1.35;margin:0 0 6px;color:#fff}
+.column-tooltip-description{font-size:12px;font-weight:400;line-height:1.45;margin:0;color:#e4ebf0}
+
+/* Typography and dropdown refinements requested by design. */
+strong,b,h1,h2,h3,label,th{font-weight:400}
+.search-wrap i{top:50%;transform:translateY(-50%)}
+.select-wrap:after{content:"";width:6px;height:6px;border-right:1px solid #6c8294;border-bottom:1px solid #6c8294;right:10px;top:50%;transform:translateY(-65%) rotate(45deg);font-size:0}
+.dropdown-chevron{display:inline-block;width:7px;height:7px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;transform:translateY(-2px) rotate(45deg);margin-left:14px;flex:none}
+.metric-trigger{gap:12px}
+.metric-trigger .dropdown-chevron{width:6px;height:6px;margin-left:auto;border-color:#6c8294}
+.export{display:inline-flex;align-items:center;justify-content:center;gap:0}
+/* Requested visual adjustments: filter/header backgrounds and single-line title. */
+.sidebar,.sidebar-scroll,.sidebar-actions,.main-head,.main,.table-area{background:#F6F7F7}
+.main-title{max-width:none;white-space:nowrap}
+
+</style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-gray-800">
-
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
-    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-10 shrink-0">
-        <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-bold tracking-tight">anchor.</h1>
-            <div class="relative w-96">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
-                <input id="search-input" type="text" placeholder="Поиск по DOI, названию или автору..." class="w-full bg-gray-100 text-sm rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" >
-            </div>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">anchor.</div>
+    <div class="search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="search-input" placeholder="Поиск по DOI, названию или автору..."></div>
+    <button class="primary upload" id="upload-btn" type="button">Загрузить PDF</button>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar-scroll custom-scrollbar">
+        <h2>Фильтры</h2>
+        <div class="filter-group">
+          <label class="filter-label">Публикация и источник</label>
+          <label class="filter-label" for="date-filter">Дата публикации</label>
+          <div class="date-wrap"><input class="field" id="date-filter" type="text" placeholder="Выбрать дату" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'"><i class="fa-regular fa-calendar"></i></div>
         </div>
-        <button class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Загрузить PDF
-        </button>
-    </header>
+        <div class="filter-group"><label class="filter-label" for="author-filter">Авторы</label><input class="field" id="author-filter" placeholder="Имя или фамилия"></div>
+        <div class="filter-group"><label class="filter-label" for="language-filter">Язык</label><div class="select-wrap"><select class="field field-select" id="language-filter"><option value="">Выбрать язык</option><option>Английский</option><option>Русский</option><option>Другой</option></select></div></div>
+        <div class="filter-group"><label class="filter-label" for="status-filter">Статус извлечения</label><div class="select-wrap"><select class="field field-select" id="status-filter"><option value="">Все статусы</option><option>Проверено</option><option>Требует проверки</option></select></div></div>
+        <div class="filter-group"><label class="filter-label" for="dataset-filter">Датасет</label><input class="field" id="dataset-filter" placeholder="Название датасета"></div>
+        <div class="filter-group"><label class="filter-label" for="task-filter">Тип задачи</label><input class="field" id="task-filter" placeholder="Например, поиск"></div>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ -->
-    <div class="flex flex-1 overflow-hidden">
-        
-        <!-- ЛЕВАЯ ПАНЕЛЬ (ФИЛЬТРЫ) -->
-        <aside class="w-64 bg-white border-r border-gray-200 p-5 flex flex-col overflow-y-auto custom-scrollbar shrink-0">
-            <h2 class="font-semibold text-gray-800 mb-4">Фильтры</h2>
-            
-            <div class="mb-6">
-                <label class="block text-xs font-medium text-gray-500 mb-2">Метрики</label>
-                <input type="text" placeholder="Найти метрику..." class="w-full bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 mb-3 focus:outline-none">
-                <div class="space-y-2 text-sm">
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked class="rounded text-blue-600"> <span class="font-medium text-blue-800">Все метрики</span></label>
-                </div>
-            </div>
+        <div class="filter-group"><label class="filter-label">Метрики</label><button class="field metric-trigger" id="open-metrics"><span id="metric-summary">Найти метрику...</span><span class="dropdown-chevron" aria-hidden="true"></span></button></div>
+        <div class="filter-group">
+          <label class="filter-label">Единица метрики</label>
+          <div class="unit-options" id="unit-options">
+            <button class="active" data-unit="any">Любая</button><button data-unit="%">%</button><button data-unit="0–1">0–1</button>
+          </div>
+          <button id="configure-unit" class="field" style="margin-top:6px;text-align:left">Настроить единицу...</button>
+        </div>
 
-            <div class="mb-8">
-                <label class="block text-xs font-medium text-gray-500 mb-2">Направление улучшения</label>
-                <div class="space-y-2 text-sm">
-                    <label class="flex items-center gap-2 cursor-pointer bg-gray-100 p-2 rounded-lg"><input type="radio" name="dir" checked> Любое</label>
-                    <label class="flex items-center gap-2 cursor-pointer p-2 text-gray-600"><input type="radio" name="dir"> Больше - лучше</label>
-                    <label class="flex items-center gap-2 cursor-pointer p-2 text-gray-600"><input type="radio" name="dir"> Меньше - лучше</label>
-                </div>
-            </div>
+        <div class="filter-section-title">Конфигурация RAG</div>
+        <div class="filter-group"><label class="filter-label" for="config-filter">Конфигурация</label><div class="select-wrap"><select class="field field-select" id="config-filter"><option value="">Выбрать конфигурацию</option></select></div></div>
+        <div class="filter-group"><label class="filter-label" for="architecture-filter">Архитектура</label><input class="field" id="architecture-filter" placeholder="Например, modular RAG"></div>
+        <div class="filter-group"><label class="filter-label" for="retrieval-filter">Retrieval</label><input class="field" id="retrieval-filter" placeholder="Например, hybrid"></div>
+        <div class="filter-group"><label class="filter-label" for="chunking-filter">Chunking</label><input class="field" id="chunking-filter" placeholder="Размер и перекрытие"></div>
+        <div class="filter-group"><label class="filter-label" for="model-filter">Модели</label><input class="field" id="model-filter" placeholder="Название модели"></div>
 
-            <div class="mt-auto space-y-2">
-                <button class="w-full bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg text-sm font-medium">Применить</button>
-                <button class="w-full text-gray-500 hover:text-gray-800 py-2 text-sm font-medium">Сбросить</button>
-            </div>
-        </aside>
+        <div class="filter-section-title">Эксперимент</div>
+        <div class="filter-group"><label class="filter-label" for="methodology-filter">Методология</label><input class="field" id="methodology-filter" placeholder="Описание метода"></div>
+        <div class="filter-group"><label class="filter-label" for="protocol-filter">Протокол</label><input class="field" id="protocol-filter" placeholder="Протокол оценки"></div>
+        <div class="filter-group"><label class="filter-label" for="baseline-filter">Baseline</label><input class="field" id="baseline-filter" placeholder="Базовый метод"></div>
 
-        <!-- ЦЕНТРАЛЬНАЯ ЧАСТЬ (ТАБЛИЦА) -->
-        <main class="flex-1 flex flex-col min-w-0 bg-[#f8fafc]">
-            <div class="p-6 pb-2 shrink-0">
-                <h2 class="text-2xl font-semibold mb-1">Извлечённые показатели</h2>
-                <p class="text-sm text-gray-500">Публикации, метрики и исходные значения</p>
-            </div>
+      </div>
+      <div class="sidebar-actions"><button class="primary" id="apply-filters">Применить</button><button class="reset" id="reset-filters">Сбросить</button></div>
+    </aside>
+    <main class="main">
+      <div class="main-head">
+        <div class="main-head-row">
+          <h1 class="main-title">Система для анализа научных исследований в области RAG</h1>
+          <button class="export" id="export-btn">Экспортировать<span class="dropdown-chevron" aria-hidden="true"></span></button>
+        </div>
+        <p class="main-subtitle">Наведите на название столбца, чтобы увидеть пояснение</p>
+      </div>
+      <div class="table-area custom-scrollbar">
+        <table class="data-table">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"><tr><td colspan="30" style="text-align:center;padding:30px;color:#8295a5">Загрузите PDF, чтобы отобразить результаты.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="table-pagination" id="table-pagination" aria-label="Навигация по таблице">
+        <span class="page-info" id="table-page-info">Загрузка записей...</span>
+        <div class="page-actions">
+          <button type="button" id="table-prev-page" disabled>Назад</button>
+          <span class="page-number" id="table-page-number">Страница 1</span>
+          <button type="button" id="table-next-page" disabled>Далее</button>
+        </div>
+      </div>
+    </main>
+    <aside class="right-panel">
+      <div class="right-head"><h3>Проверка источника</h3><p id="current-id">Выберите строку</p>
+        <div class="pdf-controls"><button id="prev-page" aria-label="Предыдущая страница" title="Предыдущая страница">‹</button><span id="page-label">Страница —</span><button id="next-page" aria-label="Следующая страница" title="Следующая страница">›</button><button id="fit-pdf" aria-label="Подогнать" title="Подогнать">□</button><button id="close-pdf" aria-label="Закрыть" title="Закрыть">×</button></div>
+      </div>
+      <div class="pdf-content">
+        <div id="warning-box" class="info-box hidden" style="background:#fffbea;border:1px solid #f3e5ad;color:#80621a"><strong id="issue-title"></strong> <span id="issue-desc"></span></div>
+        <div id="fragment-box" class="info-box hidden" style="background:#eff6fa;border:1px solid #d7e6ef;color:#425c70"><strong>Фрагмент из текста:</strong><p id="source-fragment"></p></div>
+        <div id="pdf-container"><div id="pdf-placeholder">Загрузите PDF, чтобы открыть предпросмотр</div><canvas id="pdf-viewer" class="hidden"></canvas></div>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="column-tooltip" id="column-tooltip" role="tooltip"><div class="column-tooltip-title"></div><p class="column-tooltip-description"></p></div>
 
-            <div class="flex-1 overflow-auto px-6 custom-scrollbar relative">
-                <table class="w-full text-left border-collapse bg-white rounded-lg shadow-sm overflow-hidden">
-                    <thead class="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider sticky top-0 z-10">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Статус</th>
-                            <th class="px-4 py-3 font-medium">ID / Связи</th>
-                            <th class="px-4 py-3 font-medium">Показатель</th>
-                            <th class="px-4 py-3 font-medium">Исходное значение</th>
-                            <th class="px-4 py-3 font-medium">Нормализованное</th>
-                            <th class="px-4 py-3 font-medium">Место в PDF</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="text-sm divide-y divide-gray-100">
-                        <!-- Сюда JS будет вставлять строки -->
-                        <tr><td colspan="6" class="text-center py-10 text-gray-500">Загрузка данных из CSV...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- НИЖНЯЯ ПАНЕЛЬ -->
-            <div class="p-4 bg-white border-t border-gray-200 flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-4 text-sm">
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Проверено</span>
-                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Требует проверки</span>
-                </div>
-            </div>
-        </main>
-
-        <!-- ПРАВАЯ ПАНЕЛЬ (ПРОВЕРКА ИСТОЧНИКА) -->
-        <aside class="w-[400px] bg-white border-l border-gray-200 flex flex-col shrink-0">
-            <div class="p-4 border-b border-gray-200">
-                <h3 class="font-semibold text-gray-800">Проверка источника</h3>
-                <p class="text-xs text-gray-500 mt-1" id="current-id">Выберите строку</p>
-            </div>
-            
-            <div class="p-4 flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-                <!-- Блок предупреждения -->
-                <div id="warning-box" class="hidden bg-[#fefce8] border border-yellow-200 rounded-lg p-3">
-                    <p class="text-xs text-yellow-800 leading-relaxed">
-                        <strong id="issue-title">Предупреждение:</strong> 
-                        <span id="issue-desc"></span>
-                    </p>
-                </div>
-
-                <!-- Блок дословной цитаты (фрагмента) -->
-                <div id="fragment-box" class="hidden bg-blue-50/70 border border-blue-100 rounded-lg p-3">
-                    <div class="text-[11px] font-semibold text-blue-800 uppercase mb-1">Фрагмент из текста:</div>
-                    <p id="source-fragment" class="text-xs text-gray-700 italic leading-relaxed"></p>
-                </div>
-
-                <!-- Контейнер для PDF -->
-                <div id="pdf-container" class="border border-gray-200 rounded-lg overflow-hidden flex-1 bg-gray-50 relative min-h-[350px] flex flex-col">
-                    <div id="pdf-placeholder" class="w-full h-full flex-1 flex flex-col items-center justify-center p-4 text-center">
-                        <i class="fa-regular fa-file-pdf text-5xl text-gray-300 mb-4"></i>
-                        <p class="text-sm text-gray-500">Загрузите PDF, чтобы открыть предпросмотр</p>
-                    </div>
-                    <iframe id="pdf-viewer" class="hidden w-full h-full flex-1 border-0"></iframe>
-                </div>
-            </div>
-        </aside>
-
+<!-- Диалог выбора метрик -->
+<div class="modal-backdrop" id="metrics-backdrop" role="dialog" aria-modal="true" aria-labelledby="metrics-title">
+  <section class="modal">
+    <div class="modal-head"><h2 class="modal-title" id="metrics-title">Найти метрику</h2><p class="modal-desc">Отметьте метрики, которые нужно включить в фильтр.</p><button class="modal-close" data-close="metrics-backdrop" aria-label="Закрыть">×</button></div>
+    <div class="modal-body">
+      <label class="modal-label">Тип метрики</label>
+      <div class="tabs"><button class="active" data-tab="all">Все метрики</button><button data-tab="search">Поиск</button></div>
+      <input id="metric-search" class="field hidden" placeholder="Введите название метрики..." style="height:30px;margin-bottom:10px">
+      <div class="modal-tools"><button id="select-all">Выбрать все</button><button id="clear-all">Снять выбор</button></div>
+      <div class="metric-list" id="metric-list">
+        <label class="metric-option"><input type="checkbox" value="Exact Match" checked><span><strong>Exact Match</strong><small>Точное совпадение ответа с эталоном</small></span></label>
+        <label class="metric-option"><input type="checkbox" value="Recall@5" checked><span><strong>Recall@5</strong><small>Полнота среди первых 5 результатов</small></span></label>
+        <label class="metric-option"><input type="checkbox" value="Faithfulness" checked><span><strong>Faithfulness</strong><small>Соответствие ответа источникам</small></span></label>
+      </div>
+      <p class="selection-count" id="selection-count">Выбрано метрик: 3</p>
+      <p class="modal-note">Выбор сохраняется при переключении типа метрики.</p>
     </div>
+    <div class="modal-foot"><span id="metric-footnote">0 выбранных — любая метрика</span><button class="primary" id="save-metrics">Готово</button></div>
+  </section>
+</div>
 
-    <script>
-        let allData = []; 
-        let currentPdfUrl = null; // Ссылка на загруженный в браузере PDF
+<!-- Диалог настройки единицы -->
+<div class="modal-backdrop" id="unit-backdrop" role="dialog" aria-modal="true" aria-labelledby="unit-title">
+  <section class="modal unit-modal">
+    <div class="modal-head"><h2 class="modal-title" id="unit-title">Единицы метрики</h2><p class="modal-desc">Укажите единицу измерения и диапазон значений.</p><button class="modal-close" data-close="unit-backdrop" aria-label="Закрыть">×</button></div>
+    <div class="modal-body">
+      <label class="modal-label" for="unit-name">Единица измерения</label><input class="field" id="unit-name" placeholder="Введите баллы...">
+      <div class="unit-grid"><div><label for="unit-min">Минимальное значение</label><input class="field" id="unit-min" type="number" value="0"></div><div><label for="unit-max">Максимальное значение</label><input class="field" id="unit-max" type="number" value="100"></div></div>
+      <p class="unit-help">Введите свои значения: например, баллы от 0 до 100.</p>
+    </div>
+    <div class="modal-foot"><button class="primary" id="save-unit">Готово</button></div>
+  </section>
+</div>
 
-        // Вспомогательная функция для отображения PDF на нужной странице
-        function renderPdfPage(page = 1) {
-            if (!currentPdfUrl) return;
-            const viewer = document.getElementById('pdf-viewer');
-            const placeholder = document.getElementById('pdf-placeholder');
-            
-            placeholder.classList.add('hidden');
-            viewer.classList.remove('hidden');
-            
-            // Параметр #page= заставляет встроенный просмотрщик браузера открыть нужную страницу
-            viewer.src = `${currentPdfUrl}#page=${page}&view=FitH`;
-        }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// API расположен на FastAPI. Если страница открыта не с порта 8000
+// (например, через Live Server или напрямую как HTML-файл), обращаемся
+// к локальному backend, который запускается командой python main.py.
+const API_BASE = (location.protocol !== 'file:' && location.port === '8000')
+  ? location.origin
+  : 'http://127.0.0.1:8000';
+const apiUrl = path => `${API_BASE}${path}`;
 
-        // 1. Загрузка существующих данных (при старте)
-        async function loadData() {
-            try {
-                const response = await fetch('/api/results');
-                allData = await response.json();
-                renderTable(allData);
-            } catch (error) {
-                console.error("Ошибка загрузки:", error);
-                // Если база пуста, просто показываем сообщение
-                document.getElementById('table-body').innerHTML = 
-                    `<tr><td colspan="6" class="text-center py-10 text-gray-500">База пуста. Загрузите PDF для начала.</td></tr>`;
-            }
-        }
+let allData = [];
+let currentPdfDoc = null;
+let currentPage = 1;
+let pdfFitMode = true; // true: fit the whole page; false: 100% zoom
+let pdfRenderTask = null;
+let pdfRenderToken = 0;
+let selectedMetrics = new Set(['Exact Match','Recall@5','Faithfulness']);
+let activeUnit = 'any';
 
-        // 2. Отрисовка таблицы
-        function renderTable(data) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = ''; 
+function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow=''}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(back=>back.addEventListener('click',e=>{if(e.target===back)closeModal(back.id)}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>closeModal(m.id))});
 
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-500">Нет данных</td></tr>`;
-                return;
-            }
+document.getElementById('open-metrics').addEventListener('click',()=>{syncMetricChecks();openModal('metrics-backdrop')});
+document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===btn));
+  document.getElementById('metric-search').classList.toggle('hidden',btn.dataset.tab!=='search');
+  if(btn.dataset.tab==='search')document.getElementById('metric-search').focus();
+}));
+document.getElementById('metric-search').addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase();
+  document.querySelectorAll('#metric-list .metric-option').forEach(el=>el.classList.toggle('hidden',!el.textContent.toLowerCase().includes(q)));
+});
+function syncMetricChecks(){
+  document.querySelectorAll('#metric-list input').forEach(cb=>cb.checked=selectedMetrics.has(cb.value));
+  updateMetricCount();
+}
+function updateMetricCount(){
+  const n=document.querySelectorAll('#metric-list input:checked').length;
+  document.getElementById('selection-count').textContent='Выбрано метрик: '+n;
+  document.getElementById('metric-footnote').textContent=n===0?'0 выбранных — любая метрика':n+' выбрано';
+}
+document.getElementById('metric-list').addEventListener('change',e=>{if(e.target.matches('input')){e.target.checked?selectedMetrics.add(e.target.value):selectedMetrics.delete(e.target.value);updateMetricCount()}});
+document.getElementById('select-all').addEventListener('click',()=>{document.querySelectorAll('#metric-list input').forEach(cb=>{cb.checked=true;selectedMetrics.add(cb.value)});updateMetricCount()});
+document.getElementById('clear-all').addEventListener('click',()=>{document.querySelectorAll('#metric-list input').forEach(cb=>cb.checked=false);selectedMetrics.clear();updateMetricCount()});
+document.getElementById('save-metrics').addEventListener('click',()=>{
+  document.getElementById('metric-summary').textContent=selectedMetrics.size?`Выбрано: ${selectedMetrics.size}`:'Найти метрику...';
+  closeModal('metrics-backdrop');
+});
+document.getElementById('configure-unit').addEventListener('click',()=>openModal('unit-backdrop'));
+document.getElementById('save-unit').addEventListener('click',()=>{
+  const name=document.getElementById('unit-name').value.trim();
+  const min=document.getElementById('unit-min').value, max=document.getElementById('unit-max').value;
+  if(min!==''&&max!==''&&Number(min)>Number(max)){alert('Минимальное значение не может быть больше максимального.');return}
+  document.getElementById('configure-unit').textContent=name?`${name}: ${min}–${max}`:'Настроить единицу...';
+  closeModal('unit-backdrop');
+});
+document.querySelectorAll('#unit-options button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#unit-options button').forEach(x=>x.classList.toggle('active',x===btn));activeUnit=btn.dataset.unit;
+}));
 
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 cursor-pointer transition-colors";
-                
-                const statusIcon = row.has_issue 
-                    ? '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>' 
-                    : '<i class="fa-solid fa-circle-check text-green-500"></i>';
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
-                // Безопасное извлечение вложенных полей (на случай если их нет)
-                const prov = row.provenance || {};
-                const status = row.status || {};
+function updatePdfControls(){
+  const hasPdf=!!currentPdfDoc;
+  document.getElementById('prev-page').disabled=!hasPdf||currentPage<=1;
+  document.getElementById('next-page').disabled=!hasPdf||currentPage>=currentPdfDoc.numPages;
+  document.getElementById('fit-pdf').disabled=!hasPdf;
+  document.getElementById('close-pdf').disabled=!hasPdf;
+  document.getElementById('page-label').textContent=hasPdf?`Страница ${currentPage} из ${currentPdfDoc.numPages}`:'Страница —';
+  const fitButton=document.getElementById('fit-pdf');
+  fitButton.setAttribute('aria-pressed',String(pdfFitMode));
+  fitButton.classList.toggle('is-active',pdfFitMode);
+  fitButton.title=pdfFitMode?'Сейчас: вписать страницу. Нажмите для масштаба 100%':'Сейчас: 100%. Нажмите, чтобы вписать страницу';
+  fitButton.setAttribute('aria-label',fitButton.title);
+}
 
-                tr.innerHTML = `
-                    <td class="px-4 py-3">${statusIcon}</td>
-                    <td class="px-4 py-3 text-gray-700">${row.result_id || ''}<br><span class="text-xs text-gray-400">${prov.publication_id || ''}</span></td>
-                    <td class="px-4 py-3 font-medium text-gray-800">${row.metric_name || ''}</td>
-                    <td class="px-4 py-3 text-gray-500">${status.raw_value || row.metric_value || ''}</td>
-                    <td class="px-4 py-3 font-medium">${row.metric_value || ''}</td>
-                    <td class="px-4 py-3 text-gray-500 text-xs">Стр. ${prov.source_page || '?'}</td>
-                `;
+async function renderPdfPage(page=1){
+  if(!currentPdfDoc)return;
+  currentPage=Math.min(currentPdfDoc.numPages,Math.max(1,Number(page)||1));
+  const token=++pdfRenderToken;
+  if(pdfRenderTask){try{pdfRenderTask.cancel()}catch(_){} pdfRenderTask=null;}
+  const placeholder=document.getElementById('pdf-placeholder');
+  const canvas=document.getElementById('pdf-viewer');
+  placeholder.classList.add('hidden');
+  canvas.classList.remove('hidden');
+  updatePdfControls();
+  try{
+    const pdfPage=await currentPdfDoc.getPage(currentPage);
+    if(token!==pdfRenderToken)return;
+    const baseViewport=pdfPage.getViewport({scale:1});
+    const container=document.getElementById('pdf-container');
+    const availableWidth=Math.max(120,container.clientWidth-24);
+    const availableHeight=Math.max(160,container.clientHeight-24);
+    const fitScale=Math.min(availableWidth/baseViewport.width,availableHeight/baseViewport.height);
+    const scale=pdfFitMode?fitScale:1;
+    const viewport=pdfPage.getViewport({scale});
+    const outputScale=window.devicePixelRatio||1;
+    const context=canvas.getContext('2d');
+    canvas.width=Math.max(1,Math.floor(viewport.width*outputScale));
+    canvas.height=Math.max(1,Math.floor(viewport.height*outputScale));
+    canvas.style.width=`${Math.floor(viewport.width)}px`;
+    canvas.style.height=`${Math.floor(viewport.height)}px`;
+    pdfRenderTask=pdfPage.render({
+      canvasContext:context,
+      viewport,
+      transform:outputScale===1?null:[outputScale,0,0,outputScale,0,0]
+    });
+    await pdfRenderTask.promise;
+    if(token===pdfRenderToken)pdfRenderTask=null;
+  }catch(error){
+    if(error&&error.name==='RenderingCancelledException')return;
+    console.error('Ошибка отображения PDF:',error);
+    if(token===pdfRenderToken){
+      canvas.classList.add('hidden');
+      placeholder.textContent='Не удалось отобразить эту страницу PDF.';
+      placeholder.classList.remove('hidden');
+    }
+  }
+}
 
-                tr.onclick = () => showDetails(row);
-                tbody.appendChild(tr);
-            });
-        }
+async function openLocalPdf(file){
+  if(!window.pdfjsLib){
+    throw new Error('Не удалось загрузить модуль просмотра PDF. Проверьте подключение к интернету и обновите страницу.');
+  }
+  const bytes=await file.arrayBuffer();
+  const loadingTask=pdfjsLib.getDocument({data:bytes});
+  const doc=await loadingTask.promise;
+  currentPdfDoc=doc;
+  currentPage=1;
+  pdfFitMode=true;
+  document.getElementById('pdf-placeholder').textContent='';
+  await renderPdfPage(1);
+}
 
-        // 3. Показ деталей при клике на строку таблицы
-        function showDetails(row) {
-            document.getElementById('current-id').innerText = `Result ID: ${row.result_id} (${row.metric_name})`;
+document.getElementById('prev-page').onclick=()=>{if(currentPdfDoc&&currentPage>1)renderPdfPage(currentPage-1)};
+document.getElementById('next-page').onclick=()=>{if(currentPdfDoc&&currentPage<currentPdfDoc.numPages)renderPdfPage(currentPage+1)};
+document.getElementById('close-pdf').onclick=()=>{
+  ++pdfRenderToken;
+  if(pdfRenderTask){try{pdfRenderTask.cancel()}catch(_){} pdfRenderTask=null;}
+  currentPdfDoc=null;currentPage=1;
+  document.getElementById('pdf-viewer').classList.add('hidden');
+  const placeholder=document.getElementById('pdf-placeholder');
+  placeholder.textContent='Загрузите PDF, чтобы открыть предпросмотр';
+  placeholder.classList.remove('hidden');
+  document.getElementById('pdf-viewer').width=0;
+  document.getElementById('pdf-viewer').height=0;
+  updatePdfControls();
+};
+document.getElementById('fit-pdf').onclick=()=>{if(currentPdfDoc){pdfFitMode=!pdfFitMode;renderPdfPage(currentPage)}};
+window.addEventListener('resize',()=>{if(currentPdfDoc&&pdfFitMode)renderPdfPage(currentPage)});
 
-            // Показываем предупреждение, если есть
-            const warningBox = document.getElementById('warning-box');
-            if (row.has_issue && row.issue_details) {
-                warningBox.classList.remove('hidden');
-                document.getElementById('issue-title').innerText = (row.issue_details.check_name || 'Предупреждение') + ': ';
-                document.getElementById('issue-desc').innerText = row.issue_details.description || '';
-            } else {
-                warningBox.classList.add('hidden');
-            }
+const TABLE_COLUMNS = [
+  ['publication_id','Идентификатор публикации','Идентификатор публикации, из которой извлечён результат.'],
+  ['result_id','Идентификатор результата','Уникальный идентификатор строки с результатом внутри публикации.'],
+  ['experiment_id','Идентификатор эксперимента','Идентификатор эксперимента, в рамках которого получен результат.'],
+  ['config_id','Идентификатор конфигурации','Идентификатор конфигурации RAG, использованной в эксперименте.'],
+  ['dataset_id','Идентификатор датасета','Датасет, на котором оценивали систему.'],
+  ['task_id','Тип задачи','Задача, для которой проводилась оценка системы.'],
+  ['metric_group','Группа метрик','Категория, к которой относится метрика, например качество ответа или качество поиска.'],
+  ['metric_name','Название метрики','Краткое название показателя, использованного для оценки системы.'],
+  ['metric_variant','Вариант метрики','Уточнение способа расчёта или варианта метрики, если он указан в публикации.'],
+  ['metric_direction','Направление метрики','Показывает, какое значение считается предпочтительным: большее, меньшее или целевое.'],
+  ['metric_k','Параметр k','Количество первых элементов, учитываемых метрикой вида @k, например Recall@5.'],
+  ['metric_value','Значение метрики','Нормализованное числовое значение метрики, используемое для сравнения результатов.'],
+  ['metric_unit','Единица метрики','Единица измерения значения метрики, например проценты или диапазон от 0 до 1.'],
+  ['baseline_value','Базовое значение','Значение метрики для базового метода или системы, с которым сравнивается результат.'],
+  ['aggregation','Агрегация','Способ объединения результатов нескольких запусков или примеров, если он указан.'],
+  ['sample_size','Размер выборки','Количество примеров или наблюдений, на которых рассчитано значение метрики.'],
+  ['raw_value','Исходное значение','Значение метрики в том виде, в котором оно приведено в источнике.'],
+  ['raw_unit','Исходная единица','Единица измерения, указанная рядом с исходным значением в публикации.'],
+  ['normalized_value','Нормализованное значение','Значение после приведения к единому числовому формату для сопоставления.'],
+  ['normalized_unit','Нормализованная единица','Единица измерения после нормализации значения.'],
+  ['result_origin','Происхождение результата','Указывает, получен ли результат в собственном эксперименте публикации или взят из цитируемого источника.'],
+  ['cited_publication_id','Идентификатор цитируемой публикации','Идентификатор публикации, из которой заимствован результат, если он не является первичным.'],
+  ['source_page','Страница источника','Номер страницы PDF, на которой найдено значение или подтверждающий его фрагмент.'],
+  ['source_section','Раздел источника','Название раздела публикации, в котором приведён результат.'],
+  ['source_table','Таблица источника','Обозначение таблицы публикации, содержащей результат.'],
+  ['source_figure','Рисунок источника','Обозначение рисунка или графика, из которого извлечён результат.'],
+  ['source_fragment','Фрагмент источника','Цитата или текстовый фрагмент публикации, подтверждающий извлечённое значение.'],
+  ['extraction_status','Статус извлечения','Показывает, удалось ли извлечь значение, присутствует ли оно без доступного числового значения или отсутствует.'],
+  ['duplicate_of','Идентификатор исходной записи','Идентификатор записи, с которой текущий результат признан дубликатом.'],
+  ['note','Примечание','Дополнительное пояснение к результату, ограничениям или условиям его интерпретации.']
+];
+const FIELD_ALIASES = {
+  publication_id:['publication_id'],
+  author:['authors'],
+  architecture:['rag_variant'],
+  retrieval:['retrieval_method'],
+  chunking:['chunking_method'],
+  model:['generator_model','embedding_model','retriever_model','reranker_model'],
+  baseline:['baseline_name'],
+  methodology:['prompt_strategy','context_strategy'],
+  protocol:['evaluation_protocol'],
+  source_page:['source_page'],
+  source_fragment:['source_fragment']
+};
+let currentSort = {key:null, direction:1};
+let visibleRows = [];
+// Render only one small page of rows. The complete dataset remains available
+// for filtering/export, while the DOM never contains tens of thousands of rows.
+const TABLE_PAGE_SIZE = 100;
+let currentTablePage = 1;
+let metricSelectionInitialized = false;
+let referenceData = {};
 
-            // Показываем исходный текстовый фрагмент, если он пришел от LLM или из CSV
-            const prov = row.provenance || {};
-            const fragment = prov.source_fragment || row.source_fragment;
-            const fragmentBox = document.getElementById('fragment-box');
-            if (fragment) {
-                fragmentBox.classList.remove('hidden');
-                document.getElementById('source-fragment').innerText = `«${fragment}»`;
-            } else {
-                fragmentBox.classList.add('hidden');
-            }
+function compositeKey(publicationId, recordId){
+  return `${String(publicationId||'').trim()}::${String(recordId||'').trim()}`;
+}
+function makeScopedIndex(rows,key){
+  return new Map((rows||[]).map(item=>[
+    compositeKey(item.publication_id,item[key]),item
+  ]));
+}
+function getField(row,key){
+  if(!row)return '';
+  const prov=row.provenance||row.source||{};
+  const cfg=row.configuration||row.config||{};
+  const exp=row.experiment||{};
+  const pub=row.publication||{};
+  const dataset=row.dataset||{};
+  const task=row.task||{};
+  const metric=row.metric||{};
+  const status=row.status||{};
+  const candidates=[key,...(FIELD_ALIASES[key]||[])];
+  for(const candidate of candidates){
+    for(const obj of [row,prov,status,cfg,exp,pub,dataset,task,metric]){
+      if(obj && obj[candidate]!==undefined && obj[candidate]!==null && obj[candidate]!=='')return obj[candidate];
+    }
+  }
+  return '';
+}
+function displayValue(key,value){
+  if(value===undefined||value===null||value==='')return '—';
+  if(Array.isArray(value))return value.join(', ');
+  if(typeof value==='object')return JSON.stringify(value);
+  if(key==='metric_direction'){
+    const v=String(value).toLowerCase();
+    if(v==='higher_is_better')return '↑ higher';
+    if(v==='lower_is_better')return '↓ lower';
+    if(v==='target')return 'Target';
+  }
+  return String(value);
+}
+function renderTableHead(){
+  const head=document.getElementById('table-head');
+  head.innerHTML='<tr>'+TABLE_COLUMNS.map(([key,label,description])=>`<th data-key="${key}" data-tooltip-title="${escapeHtml(key)}" data-tooltip-description="${escapeHtml(description)}"><div class="th-content"><span class="th-label">${escapeHtml(key)}</span><span class="sort-indicator">${currentSort.key===key?(currentSort.direction===1?'↑':'↓'):'↕'}</span></div></th>`).join('')+'</tr>';
+  const tooltip=document.getElementById('column-tooltip');
+  const tooltipTitle=tooltip.querySelector('.column-tooltip-title');
+  const tooltipDescription=tooltip.querySelector('.column-tooltip-description');
+  const showTooltip=th=>{
+    tooltipTitle.textContent=th.dataset.tooltipTitle||'';
+    tooltipDescription.textContent=th.dataset.tooltipDescription||'';
+    const rect=th.getBoundingClientRect();
+    tooltip.style.left='0px';
+    tooltip.style.top='0px';
+    tooltip.classList.add('is-visible');
+    const tipRect=tooltip.getBoundingClientRect();
+    const left=Math.max(12,Math.min(rect.left,window.innerWidth-tipRect.width-12));
+    let top=rect.bottom+8;
+    if(top+tipRect.height>window.innerHeight-12)top=Math.max(12,rect.top-tipRect.height-8);
+    tooltip.style.left=left+'px';
+    tooltip.style.top=top+'px';
+  };
+  head.querySelectorAll('th').forEach(th=>{
+    th.addEventListener('mouseenter',()=>showTooltip(th));
+    th.addEventListener('mouseleave',()=>tooltip.classList.remove('is-visible'));
+    th.addEventListener('focus',()=>showTooltip(th));
+    th.addEventListener('blur',()=>tooltip.classList.remove('is-visible'));
+    th.tabIndex=0;
+    th.addEventListener('click',()=>{
+      const key=th.dataset.key;
+      currentSort={key,direction:currentSort.key===key?-currentSort.direction:1};
+      renderTable(visibleRows,true);
+    });
+  });
+}
+function uniqueValues(rows,key){
+  return [...new Set(rows.map(row=>String(getField(row,key)||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ru',{numeric:true,sensitivity:'base'}));
+}
+function fillSelect(selectId,values,placeholder){
+  const select=document.getElementById(selectId);if(!select)return;
+  const current=select.value;
+  select.innerHTML=`<option value="">${escapeHtml(placeholder)}</option>`+values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if(values.includes(current))select.value=current;
+}
+function fillConfigOptions(rows){
+  const select=document.getElementById('config-filter');
+  if(!select)return;
+  const current=select.value;
+  const pairs=[...new Map(rows.map(row=>{
+    const id=String(getField(row,'config_id')||'').trim();
+    const pid=String(getField(row,'publication_id')||'').trim();
+    return [compositeKey(pid,id),{value:compositeKey(pid,id),label:[pid,id].filter(Boolean).join(' · ')}];
+  }).filter(([key,item])=>item.value!=='::'&&item.label)).values()]
+    .sort((a,b)=>a.label.localeCompare(b.label,'ru',{numeric:true,sensitivity:'base'}));
+  select.innerHTML='<option value="">Выбрать конфигурацию</option>'+pairs.map(x=>`<option value="${escapeHtml(x.value)}">${escapeHtml(x.label)}</option>`).join('');
+  if(pairs.some(x=>x.value===current))select.value=current;
+}
+function refreshFilterOptions(rows){
+  fillConfigOptions(rows);
+  const metricNames=uniqueValues(rows,'metric_name');
+  if(metricNames.length){
+    const previous=[...selectedMetrics];
+    selectedMetrics=!metricSelectionInitialized?new Set(metricNames):new Set(metricNames.filter(x=>previous.includes(x)));
+    metricSelectionInitialized=true;
+    const list=document.getElementById('metric-list');
+    list.innerHTML=metricNames.map(name=>`<label class="metric-option"><input type="checkbox" value="${escapeHtml(name)}" ${selectedMetrics.has(name)?'checked':''}><span><strong>${escapeHtml(name)}</strong><small>Фильтр по названию метрики</small></span></label>`).join('');
+    updateMetricCount();
+    document.getElementById('metric-summary').textContent=selectedMetrics.size?`Выбрано: ${selectedMetrics.size}`:'Найти метрику...';
+  }
+}
+function attachReferenceData(rows, refs){
+  const configs=makeScopedIndex(refs.configurations,'config_id');
+  const experiments=makeScopedIndex(refs.experiments,'experiment_id');
+  const datasets=makeScopedIndex(refs.datasets,'dataset_id');
+  const tasks=makeScopedIndex(refs.tasks,'task_id');
+  const publications=new Map((refs.publications||[]).map(item=>[String(item.publication_id||''),item]));
+  const issueMap=new Map();
+  const publicationsByResultId=new Map();
+  (rows||[]).forEach(row=>{
+    const rid=String(row.result_id||'').trim();
+    const pid=String(row.publication_id||(row.provenance||{}).publication_id||'').trim();
+    if(!rid||!pid)return;
+    if(!publicationsByResultId.has(rid))publicationsByResultId.set(rid,new Set());
+    publicationsByResultId.get(rid).add(pid);
+  });
+  (refs.issues||[]).forEach(issue=>{
+    const declaredPid=String(issue.publication_id||'').trim();
+    String(issue.record_ids||'').split(';').map(x=>x.trim()).filter(Boolean).forEach(rid=>{
+      // Современная схема хранит publication_id в issues. Для старых CSV без
+      // этого поля допускаем связь только если result_id однозначен во всём наборе.
+      const candidatePids=declaredPid?[declaredPid]:[...(publicationsByResultId.get(rid)||[])];
+      if(candidatePids.length!==1)return;
+      const key=compositeKey(candidatePids[0],rid);
+      if(!issueMap.has(key))issueMap.set(key,[]);
+      issueMap.get(key).push(issue);
+    });
+  });
+  return (rows||[]).map(row=>{
+    const pid=String(row.publication_id||(row.provenance||{}).publication_id||'').trim();
+    const rid=String(row.result_id||'').trim();
+    const issues=issueMap.get(compositeKey(pid,rid))||[];
+    return {
+      ...row,
+      publication_id:pid,
+      configuration:row.configuration||configs.get(compositeKey(pid,row.config_id))||{},
+      experiment:row.experiment||experiments.get(compositeKey(pid,row.experiment_id))||{},
+      dataset:row.dataset||datasets.get(compositeKey(pid,row.dataset_id))||{},
+      task:row.task||tasks.get(compositeKey(pid,row.task_id))||{},
+      publication:row.publication||publications.get(pid)||{},
+      has_issue:issues.length>0,
+      issue_list:issues,
+      issue_details:issues.length?{
+        check_name:issues.map(x=>x.check_name).filter(Boolean).join(', '),
+        description:issues.map(x=>x.description).filter(Boolean).join(' | ')
+      }:{}
+    };
+  });
+}
+function normalizeUploadedResult(item){
+  const provenance=item.provenance||{};
+  const status=item.status||{};
+  return {
+    ...item,
+    publication_id:provenance.publication_id||item.publication_id||'',
+    result_origin:provenance.result_origin||item.result_origin||'',
+    cited_publication_id:provenance.cited_publication_id||item.cited_publication_id||'',
+    source_page:provenance.source_page??item.source_page??'',
+    source_section:provenance.source_section||item.source_section||'',
+    source_table:provenance.source_table||item.source_table||'',
+    source_figure:provenance.source_figure||item.source_figure||'',
+    source_fragment:provenance.source_fragment||item.source_fragment||'',
+    raw_value:status.raw_value??item.raw_value??'',
+    raw_unit:status.raw_unit??item.raw_unit??'',
+    normalized_value:status.normalized_value??item.normalized_value??'',
+    normalized_unit:status.normalized_unit||item.normalized_unit||'',
+    extraction_status:status.extraction_status||item.extraction_status||'extracted'
+  };
+}
+function renderTable(data, resetPage=true){
+  // Keep one canonical filtered/sorted array; only the current page is put in DOM.
+  visibleRows=Array.isArray(data)?data.slice():[];
+  if(currentSort.key){
+    const key=currentSort.key,dir=currentSort.direction;
+    visibleRows.sort((a,b)=>{
+      const av=getField(a,key),bv=getField(b,key);
+      const an=Number(av),bn=Number(bv);
+      const bothNumeric=String(av??'').trim()!==''&&String(bv??'').trim()!==''&&Number.isFinite(an)&&Number.isFinite(bn);
+      const result=bothNumeric?an-bn:String(av??'').localeCompare(String(bv??''),'ru',{numeric:true,sensitivity:'base'});
+      return result*dir;
+    });
+  }
+  if(resetPage)currentTablePage=1;
+  renderTableHead();
+  renderTablePage();
+}
+function renderTablePage(){
+  const tbody=document.getElementById('table-body');
+  const total=visibleRows.length;
+  const pageCount=Math.max(1,Math.ceil(total/TABLE_PAGE_SIZE));
+  currentTablePage=Math.min(Math.max(1,currentTablePage),pageCount);
+  const start=(currentTablePage-1)*TABLE_PAGE_SIZE;
+  const end=Math.min(start+TABLE_PAGE_SIZE,total);
+  tbody.replaceChildren();
+  if(!total){
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=TABLE_COLUMNS.length;td.style.cssText='text-align:center;padding:30px;color:#8295a5';td.textContent='Нет данных';
+    tr.appendChild(td);tbody.appendChild(tr);
+  }else{
+    const fragment=document.createDocumentFragment();
+    for(let i=start;i<end;i++){
+      const row=visibleRows[i];
+      const tr=document.createElement('tr');
+      const cells=TABLE_COLUMNS.map(([key])=>{
+        const value=displayValue(key,getField(row,key));
+        return `<td data-key="${key}" title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
+      }).join('');
+      tr.innerHTML=cells;
+      tr.addEventListener('click',()=>showDetails(row));
+      fragment.appendChild(tr);
+    }
+    tbody.appendChild(fragment);
+  }
+  const info=document.getElementById('table-page-info');
+  const pageNumber=document.getElementById('table-page-number');
+  const prev=document.getElementById('table-prev-page');
+  const next=document.getElementById('table-next-page');
+  if(info)info.textContent=total?`Записи ${start+1}–${end} из ${total.toLocaleString('ru-RU')}`:'Записей нет';
+  if(pageNumber)pageNumber.textContent=`Страница ${currentTablePage} из ${pageCount}`;
+  if(prev)prev.disabled=currentTablePage<=1||!total;
+  if(next)next.disabled=currentTablePage>=pageCount||!total;
+}
+document.getElementById('table-prev-page').addEventListener('click',()=>{
+  if(currentTablePage>1){currentTablePage--;renderTablePage()}
+});
+document.getElementById('table-next-page').addEventListener('click',()=>{
+  const pageCount=Math.max(1,Math.ceil(visibleRows.length/TABLE_PAGE_SIZE));
+  if(currentTablePage<pageCount){currentTablePage++;renderTablePage()}
+});
 
-            // Перелистываем PDF на страницу, где найдена метрика
-            const page = prov.source_page || row.source_page || 1;
-            renderPdfPage(page);
-        }
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showDetails(row){
+  document.getElementById('current-id').textContent=row.result_id?`Результат: ${row.result_id}`:'Выбрана запись';
+  const warning=document.getElementById('warning-box');
+  if(row.has_issue&&row.issue_details){warning.classList.remove('hidden');document.getElementById('issue-title').textContent=(row.issue_details.check_name||'Предупреждение')+':';document.getElementById('issue-desc').textContent=row.issue_details.description||''}else warning.classList.add('hidden');
+  const fragment=getField(row,'source_fragment'),fragmentBox=document.getElementById('fragment-box');
+  if(fragment){fragmentBox.classList.remove('hidden');document.getElementById('source-fragment').textContent='«'+fragment+'»'}else fragmentBox.classList.add('hidden');
+  const page=getField(row,'source_page');
+  if(page)renderPdfPage(page);
+}
+function searchableRowText(row){
+  const publication=row.publication||{};
+  return TABLE_COLUMNS.map(([key])=>displayValue(key,getField(row,key)))
+    .concat([publication.title,publication.DOI,publication.authors,row.title,row.DOI,row.authors])
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function applySearchAndFilters(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  const val=id=>document.getElementById(id)?.value.trim().toLowerCase()||'';
+  const author=val('author-filter'),dataset=val('dataset-filter'),task=val('task-filter'),status=document.getElementById('status-filter').value;
+  const language=document.getElementById('language-filter').value;
+  const config=document.getElementById('config-filter').value;
+  const architecture=val('architecture-filter'),retrieval=val('retrieval-filter'),chunking=val('chunking-filter'),model=val('model-filter');
+  const methodology=val('methodology-filter'),protocol=val('protocol-filter'),baseline=val('baseline-filter');
+  const date=val('date-filter');
+  const includes=(values,needle)=>!needle||values.some(value=>String(value??'').toLowerCase().includes(needle));
+  const normalizeLanguage=value=>{
+    const v=String(value||'').trim().toLowerCase();
+    if(['английский','english','en','eng'].includes(v))return 'en';
+    if(['русский','russian','ru','rus'].includes(v))return 'ru';
+    return v?'other':'';
+  };
+  const filtered=allData.filter(row=>{
+    const extraction=String(getField(row,'extraction_status')||'').toLowerCase();
+    const statusMatch=!status||(status==='Проверено'
+      ?(!row.has_issue&&extraction==='extracted')
+      :(row.has_issue||extraction==='present_not_extractable'||extraction==='absent'));
+    const metricMatch=!selectedMetrics.size||selectedMetrics.has(String(getField(row,'metric_name')||''));
+    const unitValues=[getField(row,'metric_unit'),getField(row,'raw_unit'),getField(row,'normalized_unit')]
+      .map(x=>String(x||'').trim().toLowerCase());
+    const unitMatch=activeUnit==='any'
+      ||(activeUnit==='%'&&unitValues.some(x=>['%','percent','percentage'].includes(x)))
+      ||(activeUnit==='0–1'&&unitValues.some(x=>['0–1','0-1','ratio','fraction'].includes(x)));
+    const publicationYear=String(getField(row,'year')||'').trim();
+    const dateYear=date?date.slice(0,4):'';
+    // В текущем формате публикаций хранится год, а не полная дата.
+    const dateMatch=!date||publicationYear===dateYear;
+    const languageValue=normalizeLanguage(getField(row,'language'));
+    const selectedLanguage=normalizeLanguage(language);
+    const languageMatch=!language||language==='Другой'
+      ?(!language||languageValue==='other')
+      :(languageValue===selectedLanguage);
+    const datasetValues=[getField(row,'dataset_id'),getField(row,'dataset_name')];
+    const taskValues=[getField(row,'task_id'),getField(row,'task_type')];
+    const authorValues=[getField(row,'authors'),getField(row,'author')];
+    const configKey=compositeKey(getField(row,'publication_id'),getField(row,'config_id'));
+    return (!q||searchableRowText(row).includes(q))&&
+      includes(authorValues,author)&&includes(datasetValues,dataset)&&includes(taskValues,task)&&languageMatch&&
+      (!config||configKey===config)&&
+      includes([getField(row,'architecture')],architecture)&&
+      includes([getField(row,'retrieval')],retrieval)&&
+      includes([getField(row,'chunking'),getField(row,'chunk_size'),getField(row,'chunk_overlap'),getField(row,'chunk_unit')],chunking)&&
+      includes([getField(row,'model')],model)&&
+      includes([getField(row,'methodology')],methodology)&&
+      includes([getField(row,'protocol')],protocol)&&
+      includes([getField(row,'baseline')],baseline)&&
+      dateMatch&&statusMatch&&metricMatch&&unitMatch;
+  });
+  renderTable(filtered);
+}
 
-        // 4. Поиск
-        document.getElementById('search-input').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filteredData = allData.filter(row => {
-                return (row.result_id || '').toLowerCase().includes(query) || 
-                       (row.metric_name || '').toLowerCase().includes(query);
-            });
-            renderTable(filteredData);
-        });
 
-        // 5. ОБРАБОТКА КНОПКИ "ЗАГРУЗИТЬ PDF"
-        const uploadBtn = document.querySelector('header button');
-        
-        // Создаем скрытый input для выбора файла
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'application/pdf';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
+// Drag-to-scroll: удерживайте левую кнопку мыши внутри таблицы и двигайте
+// курсор влево/вправо, чтобы прокручивать её по горизонтали.
+(function enableTableDragScroll(){
+  const area=document.querySelector('.table-area');
+  if(!area)return;
+  let pointerStartX=0;
+  let scrollStart=0;
+  let dragging=false;
+  let pointerDown=false;
+  let suppressClick=false;
 
-        // Клик по кнопке вызывает окно выбора файла
-        uploadBtn.onclick = () => fileInput.click();
+  area.addEventListener('mousedown',event=>{
+    if(event.button!==0)return;
+    pointerDown=true;
+    dragging=false;
+    pointerStartX=event.clientX;
+    scrollStart=area.scrollLeft;
+  });
 
-        // Когда файл выбран:
-        // Когда файл выбран:
-        fileInput.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+  document.addEventListener('mousemove',event=>{
+    if(!pointerDown)return;
+    const delta=event.clientX-pointerStartX;
+    if(!dragging&&Math.abs(delta)>4){
+      dragging=true;
+      area.classList.add('is-dragging');
+    }
+    if(dragging){
+      area.scrollLeft=scrollStart-delta;
+      event.preventDefault();
+    }
+  });
 
-            // Освобождаем память от предыдущего PDF и создаем ссылку на новый
-            if (currentPdfUrl) URL.revokeObjectURL(currentPdfUrl);
-            currentPdfUrl = URL.createObjectURL(file);
-            renderPdfPage(1); // Сразу показываем 1-ю страницу во время анализа
+  document.addEventListener('mouseup',()=>{
+    if(!pointerDown)return;
+    pointerDown=false;
+    if(dragging){
+      area.classList.remove('is-dragging');
+      suppressClick=true;
+      window.setTimeout(()=>{suppressClick=false},0);
+    }
+    dragging=false;
+  });
 
-            // Меняем кнопку, чтобы показать загрузку
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Анализ...';
-            uploadBtn.disabled = true;
+  area.addEventListener('click',event=>{
+    if(suppressClick){
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      suppressClick=false;
+    }
+  },true);
 
-            const formData = new FormData();
-            formData.append("file", file);
+  area.addEventListener('mouseleave',()=>{
+    if(pointerDown&&dragging){
+      area.classList.remove('is-dragging');
+    }
+  });
+})();
 
-            try {
-                // Отправляем на наш Python-сервер
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+let searchDebounceTimer=null;
+document.getElementById('search-input').addEventListener('input',()=>{
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer=setTimeout(applySearchAndFilters,180);
+});
+document.getElementById('apply-filters').onclick=applySearchAndFilters;
+document.getElementById('reset-filters').onclick=()=>{
+  ['date-filter','author-filter','dataset-filter','task-filter','architecture-filter','retrieval-filter','chunking-filter','model-filter','methodology-filter','protocol-filter','baseline-filter'].forEach(id=>document.getElementById(id).value='');
+  ['language-filter','status-filter','config-filter'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  selectedMetrics=new Set(uniqueValues(allData,'metric_name'));syncMetricChecks();document.getElementById('metric-summary').textContent=selectedMetrics.size?`Выбрано: ${selectedMetrics.size}`:'Найти метрику...';
+  document.getElementById('unit-name').value='';document.getElementById('configure-unit').textContent='Настроить единицу...';
+  document.querySelector('#unit-options button[data-unit="any"]').click();
+  document.getElementById('search-input').value='';currentSort={key:null,direction:1};renderTable(allData);
+};
+const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='application/pdf';fileInput.hidden=true;document.body.appendChild(fileInput);
+document.getElementById('upload-btn').onclick=()=>fileInput.click();
+fileInput.onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  // Сначала открываем PDF локально: просмотр, страницы и масштаб работают
+  // независимо от доступности backend.
+  try{
+    await openLocalPdf(file);
+  }catch(viewError){
+    alert('Не удалось открыть PDF: '+viewError.message);
+    fileInput.value='';
+    return;
+  }
 
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.detail || `Ошибка сервера (${response.status})`);
-                }
-
-                const result = await response.json();
-                
-                // Полностью заменяем старые данные (заглушку) новыми
-                if (result.data && result.data.metric_results) {
-                    allData = result.data.metric_results;
-                    sessionStorage.setItem('uploaded_metrics', JSON.stringify(allData));
-                    renderTable(allData);
-                    alert(`Успешно извлечено ${allData.length} записей!`);
-                } else {
-                    allData = [];
-                    sessionStorage.removeItem('uploaded_metrics');
-                    renderTable(allData);
-                    alert("Не удалось найти показатели в этом PDF.");
-                }
-
-            } catch (error) {
-                console.error(error);
-                alert("Ошибка при обработке файла: " + error.message);
-            } finally {
-                // Возвращаем кнопку в исходное состояние
-                uploadBtn.innerHTML = originalText;
-                uploadBtn.disabled = false;
-                fileInput.value = ''; // Очищаем инпут
-            }
-        };
-
-        // Запуск при загрузке страницы
-        window.onload = loadData;
-    </script>
+  // Анализ документа — отдельная серверная операция. Её сбой не закрывает PDF.
+  const btn=document.getElementById('upload-btn');const old=btn.textContent;btn.textContent='Анализ...';btn.disabled=true;
+  const formData=new FormData();formData.append('file',file);
+  try{
+    const response=await fetch(apiUrl('/api/upload'),{method:'POST',body:formData});
+    if(!response.ok){const err=await response.json().catch(()=>({}));throw new Error(err.detail||`Ошибка сервера (${response.status})`)}
+    const result=await response.json();
+    if(result.data&&Array.isArray(result.data.metric_results)){
+      const uploadedRows=result.data.metric_results.map(normalizeUploadedResult);
+      allData=attachReferenceData(uploadedRows,referenceData);
+      metricSelectionInitialized=false;
+      refreshFilterOptions(allData);
+      renderTable(allData);
+      alert(`PDF открыт. Успешно извлечено ${allData.length} записей!`);
+    }else{
+      alert('Документ открыт, но результаты анализа не удалось получить.');
+    }
+  }catch(err){
+    const message = err instanceof TypeError
+      ? `Документ открыт и доступен для просмотра. Не удалось подключиться к серверу, поэтому анализ и обновление таблицы временно недоступны. Просмотр, перелистывание и масштабирование продолжают работать.`
+      : `Документ открыт, но не удалось завершить его обработку. Попробуйте загрузить файл ещё раз.`;
+    alert(message);
+  }
+  finally{btn.textContent=old;btn.disabled=false;fileInput.value=''}
+};
+document.getElementById('export-btn').onclick=()=>{const exportRows=allData.map(({configuration,experiment,dataset,task,publication,has_issue,issue_list,issue_details,...row})=>row);const blob=new Blob([JSON.stringify(exportRows,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='anchor-results.json';a.click();URL.revokeObjectURL(a.href)};
+updateMetricCount();updatePdfControls();renderTable([]);
+</script>
 </body>
 </html>
