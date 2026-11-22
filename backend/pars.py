@@ -142,7 +142,7 @@ def extract_metrics_with_llm(text: str) -> PaperExtraction:
 """
 
     response = client.chat.completions.create(
-        model="google/gemini-2.5-flash",
+        model="nvidia/nemotron-3.5-super-vl:free",
         messages=[
             {"role": "system", "content": "Ты — точный научный ассистент. Отвечай исключительно валидным JSON без markdown-оберток."},
             {"role": "user", "content": prompt},
